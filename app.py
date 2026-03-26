@@ -5,6 +5,7 @@ import yt_dlp
 import time
 import os
 import html
+import shutil
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
@@ -12,6 +13,12 @@ from reportlab.lib.styles import getSampleStyleSheet
 # ===================== PAGE =====================
 st.set_page_config(page_title="Video Lecture to Notes", layout="wide")
 st.title("🎥 Video Lecture to Notes Converter")
+
+# ===================== FFmpeg CHECK =====================
+if not shutil.which("ffmpeg"):
+    st.warning("⚠️ FFmpeg not found. Audio extraction may fail.")
+else:
+    st.success("✅ FFmpeg detected")
 
 # ===================== MODEL =====================
 @st.cache_resource
@@ -24,16 +31,13 @@ def download_youtube_video(url):
         filename = f"video_{int(time.time())}.mp4"
 
         ydl_opts = {
-            'format': 'best',
+            'format': 'best',  # IMPORTANT FIX
             'outtmpl': filename,
             'quiet': True,
             'nocheckcertificate': True,
             'ignoreerrors': True,
             'no_warnings': True,
-            'noplaylist': True,
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0'
-            }
+            'noplaylist': True
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -80,47 +84,55 @@ def predict_topic(text):
 
     text = text.lower()
     scores = {t: sum(text.count(k) for k in kws) for t, kws in topics.items()}
-
     best = max(scores, key=scores.get)
+
     return best if scores[best] > 0 else "General"
 
-# ===================== INPUT =====================
+# ===================== INPUT UI =====================
 st.markdown("### 📌 Choose Input Method")
-option = st.radio("", ["Upload Video ", "YouTube Link "])
 
-file = None
-url = None
+option = st.radio(
+    "Select one:",
+    ["Upload Video", "YouTube Link"]
+)
 
-if option == "Upload Video (Recommended)":
-    file = st.file_uploader("Upload Video", type=["mp4"])
-else:
-    st.warning("⚠️ YouTube videos may not work due to server restrictions")
-    url = st.text_input("Enter YouTube link")
+video_file = None
+youtube_url = None
+
+if option == "Upload Video":
+    video_file = st.file_uploader("📂 Upload your video", type=["mp4", "mov", "avi"])
+
+elif option == "YouTube Link":
+    st.warning("⚠️ YouTube may fail on cloud. Prefer upload.")
+    youtube_url = st.text_input("🔗 Enter YouTube URL")
 
 # ===================== PROCESS =====================
-if file or url:
+if video_file is not None or (youtube_url and youtube_url.strip() != ""):
 
     progress = st.progress(0)
     status = st.empty()
 
-    if file:
-        st.video(file)
-    elif url:
-        st.video(url)
+    # Show video
+    if video_file is not None:
+        st.video(video_file)
+    else:
+        st.video(youtube_url)
 
     status.info("📥 Loading video...")
 
-    if file:
-        vid = f"upload_{time.time()}.mp4"
+    # Save video
+    if video_file is not None:
+        vid = f"upload_{int(time.time())}.mp4"
         with open(vid, "wb") as f:
-            f.write(file.read())
+            f.write(video_file.read())
     else:
-        vid = download_youtube_video(url)
+        vid = download_youtube_video(youtube_url)
         if not vid:
             st.stop()
 
     progress.progress(30)
 
+    # Extract audio
     status.info("🎧 Extracting audio...")
     audio = extract_audio(vid)
 
@@ -130,6 +142,7 @@ if file or url:
 
     progress.progress(60)
 
+    # Transcribe
     model = load_model()
 
     status.info("📝 Transcribing...")
@@ -137,12 +150,14 @@ if file or url:
 
     progress.progress(90)
 
+    # Notes
     notes = format_notes(result["segments"])
 
     st.subheader("📜 Notes")
     for n in notes[:100]:
         st.write(n)
 
+    # Topic
     st.subheader("🎯 Predicted Topic")
     topic = predict_topic(result["text"][:2000])
     st.success(topic)
@@ -150,14 +165,15 @@ if file or url:
     progress.progress(100)
     status.success("✅ Done!")
 
+    # PDF
     pdf = create_pdf(notes)
     with open(pdf, "rb") as f:
         st.download_button("📥 Download PDF", f, file_name="Lecture_Notes.pdf")
 
-    # cleanup
+    # Cleanup
     try:
         os.remove(vid)
         os.remove(audio)
     except:
         pass
-
+    
