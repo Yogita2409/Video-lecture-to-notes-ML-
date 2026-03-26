@@ -24,7 +24,7 @@ def download_youtube_video(url):
         filename = f"video_{int(time.time())}.mp4"
 
         ydl_opts = {
-            'format': 'bestaudio/best',
+            'format': 'best',
             'outtmpl': filename,
             'quiet': True,
             'nocheckcertificate': True,
@@ -86,7 +86,7 @@ def predict_topic(text):
 
 # ===================== INPUT =====================
 st.markdown("### 📌 Choose Input Method")
-option = st.radio("", ["Upload Video (Recommended)", "YouTube Link (May fail)"])
+option = st.radio("", ["Upload Video ", "YouTube Link "])
 
 file = None
 url = None
@@ -161,4 +161,3 @@ if file or url:
     except:
         pass
 
-    
