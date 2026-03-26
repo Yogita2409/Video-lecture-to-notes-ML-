@@ -1,7 +1,6 @@
 import streamlit as st
 import whisper
 from video_utils import extract_audio
-import yt_dlp
 import time
 import os
 import html
@@ -24,30 +23,6 @@ else:
 @st.cache_resource
 def load_model():
     return whisper.load_model("base")
-
-# ===================== DOWNLOAD =====================
-def download_youtube_video(url):
-    try:
-        filename = f"video_{int(time.time())}.mp4"
-
-        ydl_opts = {
-            'format': 'best',  # IMPORTANT FIX
-            'outtmpl': filename,
-            'quiet': True,
-            'nocheckcertificate': True,
-            'ignoreerrors': True,
-            'no_warnings': True,
-            'noplaylist': True
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-
-        return filename
-
-    except Exception as e:
-        st.error(f"❌ Download Error: {str(e)}")
-        return None
 
 # ===================== PDF =====================
 def create_pdf(lines):
@@ -88,47 +63,28 @@ def predict_topic(text):
 
     return best if scores[best] > 0 else "General"
 
-# ===================== INPUT UI =====================
-st.markdown("### 📌 Choose Input Method")
+# ===================== INPUT =====================
+st.markdown("### 📂 Upload Your Video")
 
-option = st.radio(
-    "Select one:",
-    ["Upload Video", "YouTube Link"]
+video_file = st.file_uploader(
+    "Upload lecture video (MP4 recommended)",
+    type=["mp4", "mov", "avi"]
 )
 
-video_file = None
-youtube_url = None
-
-if option == "Upload Video":
-    video_file = st.file_uploader("📂 Upload your video", type=["mp4", "mov", "avi"])
-
-elif option == "YouTube Link":
-    st.warning("⚠️ YouTube may fail on cloud. Prefer upload.")
-    youtube_url = st.text_input("🔗 Enter YouTube URL")
-
 # ===================== PROCESS =====================
-if video_file is not None or (youtube_url and youtube_url.strip() != ""):
+if video_file is not None:
 
     progress = st.progress(0)
     status = st.empty()
 
     # Show video
-    if video_file is not None:
-        st.video(video_file)
-    else:
-        st.video(youtube_url)
+    st.video(video_file)
 
-    status.info("📥 Loading video...")
+    status.info("📥 Saving video...")
 
-    # Save video
-    if video_file is not None:
-        vid = f"upload_{int(time.time())}.mp4"
-        with open(vid, "wb") as f:
-            f.write(video_file.read())
-    else:
-        vid = download_youtube_video(youtube_url)
-        if not vid:
-            st.stop()
+    vid = f"upload_{int(time.time())}.mp4"
+    with open(vid, "wb") as f:
+        f.write(video_file.read())
 
     progress.progress(30)
 
@@ -153,7 +109,7 @@ if video_file is not None or (youtube_url and youtube_url.strip() != ""):
     # Notes
     notes = format_notes(result["segments"])
 
-    st.subheader("📜 Notes")
+    st.subheader("📜 Generated Notes")
     for n in notes[:100]:
         st.write(n)
 
@@ -163,12 +119,16 @@ if video_file is not None or (youtube_url and youtube_url.strip() != ""):
     st.success(topic)
 
     progress.progress(100)
-    status.success("✅ Done!")
+    status.success("✅ Processing Complete!")
 
-    # PDF
+    # PDF download
     pdf = create_pdf(notes)
     with open(pdf, "rb") as f:
-        st.download_button("📥 Download PDF", f, file_name="Lecture_Notes.pdf")
+        st.download_button(
+            "📥 Download Notes as PDF",
+            f,
+            file_name="Lecture_Notes.pdf"
+        )
 
     # Cleanup
     try:
@@ -176,4 +136,5 @@ if video_file is not None or (youtube_url and youtube_url.strip() != ""):
         os.remove(audio)
     except:
         pass
+
     
