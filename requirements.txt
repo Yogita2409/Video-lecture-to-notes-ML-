@@ -2,6 +2,12 @@ streamlit
 openai-whisper
 transformers
 torch
-moviepy
-scikit-learn
+moviepy==1.0.3
+imageio
+imageio-ffmpeg
+decorator
+tqdm
+numpy
 pandas
+scikit-learn
+yt-dlp
