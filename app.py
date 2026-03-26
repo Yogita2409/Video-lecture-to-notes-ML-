@@ -7,11 +7,11 @@ import sqlite3
 import os
 import html
 
-# 🔥 FFmpeg PATH
-os.environ["PATH"] += os.pathsep + r"C:\Users\yogita\Downloads\ffmpeg-8.1-essentials_build\ffmpeg-8.1-essentials_build\bin"
-
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
+
+# ❌ REMOVE LOCAL FFmpeg PATH (IMPORTANT for deployment)
+# os.environ["PATH"] += ...
 
 # ===================== SESSION TIMER INIT =====================
 if "start_time" not in st.session_state:
@@ -32,15 +32,6 @@ conn.commit()
 
 # ===================== PAGE =====================
 st.set_page_config(page_title="Video Lecture to Notes", layout="wide")
-
-# ===================== GREEN PROGRESS =====================
-st.markdown("""
-<style>
-.stProgress > div > div > div > div {
-    background-color: #00ff00;
-}
-</style>
-""", unsafe_allow_html=True)
 
 st.title("🎥 Video Lecture to Notes Converter")
 
@@ -97,33 +88,41 @@ level = xp // 50
 progress_val = (xp % 50) / 50
 
 st.sidebar.markdown("## 🧠 Your Dashboard")
-st.sidebar.markdown(f"👤 {st.session_state['user']}")
 st.sidebar.metric("⏱ Time Used", f"{minutes}m {seconds}s")
 st.sidebar.markdown(f"💎 XP: {xp}")
 st.sidebar.markdown(f"🎮 Level: {level}")
 st.sidebar.progress(progress_val)
-st.sidebar.caption(f"{int(progress_val*100)}% to next level")
 
 # ===================== MODEL =====================
 @st.cache_resource
 def load_model():
-    return whisper.load_model("tiny")
+    return whisper.load_model("base")  # upgraded from tiny
 
-# ===================== DOWNLOAD =====================
+# ===================== DOWNLOAD (FIXED 🔥) =====================
 def download_youtube_video(url):
     try:
         filename = f"video_{int(time.time())}.mp4"
+
         ydl_opts = {
-            'format': 'best[ext=mp4]',
+            'format': 'bestaudio/best',
             'outtmpl': filename,
             'quiet': True,
-            'noplaylist': True
+            'nocheckcertificate': True,
+            'ignoreerrors': True,
+            'no_warnings': True,
+            'noplaylist': True,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0'
+            }
         }
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+
         return filename
+
     except Exception as e:
-        st.error(f"Download Error: {str(e)}")
+        st.error(f"❌ Download Error: {str(e)}")
         return None
 
 # ===================== PDF =====================
@@ -138,9 +137,6 @@ def create_pdf(lines):
 
     for line in lines:
         clean_line = html.escape(line)
-        if len(clean_line) > 500:
-            clean_line = clean_line[:500] + "..."
-
         content.append(Paragraph(f"• {clean_line}", styles["Normal"]))
         content.append(Spacer(1, 6))
 
@@ -169,7 +165,7 @@ def predict_topic(text):
     return best if scores[best] > 0 else "General"
 
 # ===================== INPUT =====================
-file = st.file_uploader("Upload Video")
+file = st.file_uploader("Upload Video", type=["mp4"])
 url = st.text_input("YouTube link")
 
 if file or url:
@@ -191,12 +187,17 @@ if file or url:
     else:
         vid = download_youtube_video(url)
         if not vid:
+            st.warning("⚠️ Some YouTube videos are blocked. Try another.")
             st.stop()
 
     progress.progress(30)
 
     status.info("🎧 Extracting audio...")
     audio = extract_audio(vid)
+
+    if not audio:
+        st.error("❌ Audio extraction failed")
+        st.stop()
 
     progress.progress(60)
 
@@ -213,7 +214,6 @@ if file or url:
     for n in notes[:100]:
         st.write(n)
 
-    # 🎯 PREDICTED TOPIC
     st.subheader("🎯 Predicted Topic")
     topic = predict_topic(result["text"][:2000])
     st.success(topic)
@@ -221,8 +221,13 @@ if file or url:
     progress.progress(100)
     status.success("✅ Done!")
 
-    st.balloons()
-
     pdf = create_pdf(notes)
     with open(pdf, "rb") as f:
         st.download_button("📥 Download PDF", f, file_name="Lecture_Notes.pdf")
+
+    # cleanup
+    try:
+        os.remove(vid)
+        os.remove(audio)
+    except:
+        pass
