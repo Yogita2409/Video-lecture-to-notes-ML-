@@ -1,4 +1,13 @@
 streamlit
 openai-whisper
-ffmpeg-python
+transformers
+torch
+moviepy==1.0.3
+imageio
+imageio-ffmpeg
+decorator
+tqdm
+numpy
+pandas
+scikit-learn
 reportlab
