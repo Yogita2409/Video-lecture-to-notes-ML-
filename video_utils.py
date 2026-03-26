@@ -1,9 +1,17 @@
-import subprocess
 import os
+import shutil
+import subprocess
 
+# ✅ ADD THIS HERE (TOP PE)
+if not shutil.which("ffmpeg"):
+    print("❌ FFmpeg NOT found")
+else:
+    print("✅ FFmpeg found")
 
-# Force ffmpeg path (Cloud fix)
+# (optional but recommended)
 os.environ["PATH"] += os.pathsep + "/usr/bin"
+
+
 def extract_audio(video_path):
     try:
         audio_path = "audio.wav"
@@ -18,15 +26,21 @@ def extract_audio(video_path):
             audio_path
         ]
 
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        print("STDERR:", result.stderr)
+
+        if result.returncode != 0:
+            print("❌ FFmpeg failed")
+            return None
 
         if os.path.exists(audio_path):
             return os.path.abspath(audio_path)
         else:
-            print("FFmpeg failed:", result.stderr.decode())
             return None
 
     except Exception as e:
         print("Error:", e)
         return None
+    
     
