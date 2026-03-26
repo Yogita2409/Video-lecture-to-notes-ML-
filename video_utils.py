@@ -1,6 +1,9 @@
 import subprocess
 import os
 
+
+# Force ffmpeg path (Cloud fix)
+os.environ["PATH"] += os.pathsep + "/usr/bin"
 def extract_audio(video_path):
     try:
         audio_path = "audio.wav"
@@ -26,5 +29,4 @@ def extract_audio(video_path):
     except Exception as e:
         print("Error:", e)
         return None
-    
     
