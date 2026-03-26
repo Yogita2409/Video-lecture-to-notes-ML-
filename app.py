@@ -13,11 +13,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 st.set_page_config(page_title="Video Lecture to Notes", layout="wide")
 st.title("🎥 Video Lecture to Notes Converter")
 
-# ===================== FFmpeg CHECK =====================
-if not shutil.which("ffmpeg"):
-    st.warning("⚠️ FFmpeg not found. Audio extraction may fail.")
-else:
-    st.success("✅ FFmpeg detected")
 
 # ===================== MODEL =====================
 @st.cache_resource
@@ -137,4 +132,3 @@ if video_file is not None:
     except:
         pass
 
-    
