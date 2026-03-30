@@ -1,6 +1,6 @@
 # 🎥 Video Lecture to Notes 📝
 
-An AI-powered application that converts video lectures into structured, readable notes using speech-to-text and natural language processing.
+A ML application that converts video lectures into structured, readable notes using speech-to-text and natural language processing.
 
 ---
 
@@ -8,9 +8,8 @@ An AI-powered application that converts video lectures into structured, readable
 
 * 🎧 Extracts audio from video lectures
 * 🧠 Converts speech to text using AI models
-* 📝 Generates clean and structured notes
+* 📝 Generates clean and structured Transcripts with timeline
 * ⏱️ Saves time for students and learners
-* 🌐 Supports YouTube video links
 * 📄 Option to export notes (PDF/Text)
 
 ---
@@ -87,7 +86,7 @@ http://localhost:8501
 
 ## 📌 Usage
 
-1. Paste a YouTube video link
+1. Insert any video
 2. Click on **Generate Notes**
 3. Wait for processing
 4. Get summarized notes instantly
@@ -96,6 +95,7 @@ http://localhost:8501
 
 ## 📸 Screenshots
 
-*Add your project screenshots here*
+<img width="1919" height="844" alt="image" src="https://github.com/user-attachments/assets/791ab64c-f81d-489c-a722-81aca422a543" />
+
 
 
