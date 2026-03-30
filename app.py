@@ -8,11 +8,14 @@ import subprocess
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
-# ===================== FIX FFMPEG PATH =====================
-os.environ["PATH"] = r"C:\Users\yogita\Downloads\ffmpeg-8.1-essentials_build\ffmpeg-8.1-essentials_build\bin;" + os.environ["PATH"]
-os.environ["FFMPEG_BINARY"] = r"C:\Users\yogita\Downloads\ffmpeg-8.1-essentials_build\ffmpeg-8.1-essentials_build\bin\ffmpeg.exe"
 
-FFMPEG_PATH = r"C:\Users\yogita\Downloads\ffmpeg-8.1-essentials_build\ffmpeg-8.1-essentials_build\bin\ffmpeg.exe"
+# ===================== FIX FFMPEG PATH =====================
+FFMPEG_DIR = r"C:\Users\yogita\Downloads\ffmpeg-8.1-essentials_build\ffmpeg-8.1-essentials_build\bin"
+FFMPEG_PATH = os.path.join(FFMPEG_DIR, "ffmpeg.exe")
+
+# Add folder to PATH (NOT exe)
+os.environ["PATH"] += os.pathsep + FFMPEG_DIR
+os.environ["FFMPEG_BINARY"] = FFMPEG_PATH
 
 # ===================== PAGE =====================
 st.set_page_config(page_title="Video Lecture to Notes", layout="wide")
@@ -38,7 +41,7 @@ def extract_audio(video_path):
     ]
 
     try:
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
         if result.returncode != 0:
             st.error("FFmpeg Error:\n" + result.stderr)
