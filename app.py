@@ -1,23 +1,54 @@
 import streamlit as st
 import whisper
-from video_utils import extract_audio
 import time
 import os
 import html
-import shutil
+import subprocess
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
+
+# ===================== FIX FFMPEG PATH =====================
+os.environ["PATH"] = r"C:\Users\yogita\Downloads\ffmpeg-8.1-essentials_build\ffmpeg-8.1-essentials_build\bin;" + os.environ["PATH"]
+os.environ["FFMPEG_BINARY"] = r"C:\Users\yogita\Downloads\ffmpeg-8.1-essentials_build\ffmpeg-8.1-essentials_build\bin\ffmpeg.exe"
+
+FFMPEG_PATH = r"C:\Users\yogita\Downloads\ffmpeg-8.1-essentials_build\ffmpeg-8.1-essentials_build\bin\ffmpeg.exe"
 
 # ===================== PAGE =====================
 st.set_page_config(page_title="Video Lecture to Notes", layout="wide")
 st.title("🎥 Video Lecture to Notes Converter")
 
-
 # ===================== MODEL =====================
 @st.cache_resource
 def load_model():
     return whisper.load_model("base")
+
+# ===================== AUDIO EXTRACTION =====================
+def extract_audio(video_path):
+    audio_path = video_path.rsplit(".", 1)[0] + ".wav"
+
+    command = [
+        FFMPEG_PATH,
+        "-i", video_path,
+        "-vn",
+        "-acodec", "pcm_s16le",
+        "-ar", "16000",
+        "-ac", "1",
+        audio_path
+    ]
+
+    try:
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            st.error("FFmpeg Error:\n" + result.stderr)
+            return None
+
+        return audio_path if os.path.exists(audio_path) else None
+
+    except Exception as e:
+        st.error(f"Error: {e}")
+        return None
 
 # ===================== PDF =====================
 def create_pdf(lines):
@@ -72,14 +103,13 @@ if video_file is not None:
     progress = st.progress(0)
     status = st.empty()
 
-    # Show video
     st.video(video_file)
 
     status.info("📥 Saving video...")
 
     vid = f"upload_{int(time.time())}.mp4"
     with open(vid, "wb") as f:
-        f.write(video_file.read())
+        f.write(video_file.getbuffer())
 
     progress.progress(30)
 
@@ -97,7 +127,7 @@ if video_file is not None:
     model = load_model()
 
     status.info("📝 Transcribing...")
-    result = model.transcribe(audio)
+    result = model.transcribe(audio, fp16=False)
 
     progress.progress(90)
 
@@ -131,4 +161,3 @@ if video_file is not None:
         os.remove(audio)
     except:
         pass
-

@@ -1,46 +1,23 @@
-import os
-import shutil
 import subprocess
-
-# ✅ ADD THIS HERE (TOP PE)
-if not shutil.which("ffmpeg"):
-    print("❌ FFmpeg NOT found")
-else:
-    print("✅ FFmpeg found")
-
-# (optional but recommended)
-os.environ["PATH"] += os.pathsep + "/usr/bin"
-
+import os
 
 def extract_audio(video_path):
+    audio_path = video_path.replace(".mp4", ".wav")
+
+    command = [
+        r"C:\Users\yogita\Downloads\ffmpeg-8.1-essentials_build\ffmpeg-8.1-essentials_build\bin\ffmpeg.exe",
+        "-i", video_path,
+        "-vn",
+        "-acodec", "pcm_s16le",
+        "-ar", "16000",
+        "-ac", "1",
+        audio_path
+    ]
+
     try:
-        audio_path = "audio.wav"
-
-        command = [
-            "ffmpeg",
-            "-i", video_path,
-            "-vn",
-            "-acodec", "pcm_s16le",
-            "-ar", "44100",
-            "-ac", "2",
-            audio_path
-        ]
-
         result = subprocess.run(command, capture_output=True, text=True)
-
-        print("STDERR:", result.stderr)
-
-        if result.returncode != 0:
-            print("❌ FFmpeg failed")
-            return None
-
-        if os.path.exists(audio_path):
-            return os.path.abspath(audio_path)
-        else:
-            return None
-
+        print(result.stderr)   # 👈 IMPORTANT: will show error
+        return audio_path if os.path.exists(audio_path) else None
     except Exception as e:
-        print("Error:", e)
+        print("ERROR:", e)
         return None
-    
-    
